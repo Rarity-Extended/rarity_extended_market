@@ -13,6 +13,11 @@ contract rarity_extended_market {
     mapping(address => mapping(uint => uint)) public listing; //mapping(_tokenContract => mapping(_tokenId => _price))
     mapping(uint => address) public referrals;
 
+    event ReferralRegistered(address owner, uint referralId);
+    event ItemListed(address tokenContract, uint tokenId, uint price, address sender);
+    event ItemDelisted(address tokenContract, uint tokenId, address sender);
+    event ItemBought(address tokenContract, uint tokenId, uint receiver, uint referral, address sender);
+
     constructor() {
         merchantSummoner = _rm.next_summoner();
         _rm.summon(11);
@@ -34,10 +39,13 @@ contract rarity_extended_market {
         );
     }
 
-    function registerUIReferral() external {
-        lastReferral += 1;
-        require(referrals[lastReferral] == address(0), "registered");
-        referrals[lastReferral] = msg.sender;
+    function registerUIReferral() external returns(uint) {
+        uint _lastReferral = lastReferral;
+        _lastReferral += 1;
+        referrals[_lastReferral] = msg.sender;
+        lastReferral = _lastReferral;
+        emit ReferralRegistered(msg.sender, _lastReferral);
+        return _lastReferral;
     }
 
     function listItem(address _tokenContract, uint _tokenId, uint _price) external {
@@ -45,12 +53,14 @@ contract rarity_extended_market {
         require(_isApprovedOrOwner(IERC721(_tokenContract).ownerOf(_tokenId)), '!owner');
         require(_price > 0, '!zeroprice');
         listing[_tokenContract][_tokenId] = _price;
+        emit ItemListed(_tokenContract, _tokenId, _price, msg.sender);
     }
 
     function delistItem(address _tokenContract, uint _tokenId) external {
         require(_isApprovedOrOwnerOfItem(_tokenId, _tokenContract, merchantSummoner), "!tokenIdOwner");
         require(_isApprovedOrOwner(IERC721(_tokenContract).ownerOf(_tokenId)), '!owner');
         listing[_tokenContract][_tokenId] = 0;
+        emit ItemDelisted(_tokenContract, _tokenId, msg.sender);
     }
     
     function buy(address _tokenContract, uint _tokenId, uint _receiver, uint _referral) external payable {
@@ -70,6 +80,7 @@ contract rarity_extended_market {
             payable(referrals[_referral]).transfer(fee);
             payable(sellerAddr).transfer(price - fee);
         }
+        emit ItemBought(_tokenContract, _tokenId, _receiver, _referral, msg.sender);
     }
 
 }
