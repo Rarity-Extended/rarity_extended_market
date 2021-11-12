@@ -158,13 +158,13 @@ contract rarity_extended_market {
         Referral memory _referral = referrals[referral];
         require(_referral.owner == msg.sender, "!owner");
         _referral.owner = receiver;
-        _referral.sendToVault;
+        _referral.sendToVault = sendToVault;
+        referrals[referral] = _referral;
         emit ReferralUpdated(receiver, sendToVault, referral);
         return referral;
     }
 
     function listItem(address _tokenContract, uint _tokenId, uint _price, uint referral) external returns (uint) {
-        require(_isApprovedOrOwnerOfItem(_tokenId, _tokenContract, merchantSummoner), "!tokenIdOwner");
         uint summonerOwner = IERC721(_tokenContract).ownerOf(_tokenId);
         require(_isApprovedOrOwner(summonerOwner), '!owner');
         require(_price > 0, '!zeroprice');
